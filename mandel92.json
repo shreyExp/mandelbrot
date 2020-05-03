@@ -1,0 +1,8 @@
+{
+	"immax" : -0.625,
+	"immin" : -0.75,
+	"remax" : -0.125,
+	"remin" : -0.3125,
+	"directory": "Images4",
+	"divisions": 4
+}
