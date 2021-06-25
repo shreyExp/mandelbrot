@@ -126,6 +126,10 @@ int main(int argc, char** argv){
 		}
 	}
 }
+/**
+ * Calculates the number of iterations it takes for z to be ejected of the magnitude 2
+ * The maximum number of iterations which are to be calculated is given by max
+ **/
 int mandelbrot(complex<double> c, int max){
 	complex<double> z = (0.0,0.0);
 	int iter = 0;
@@ -135,7 +139,9 @@ int mandelbrot(complex<double> c, int max){
 	}
 	return iter;
 }
-
+/**
+ * Calculates the cumilative histogram
+ **/
 void cumilate(int* histogram, int* &cumilative, int size){
 	cumilative = new int[size];
 	cumilative[0] = histogram[0];
@@ -143,13 +149,18 @@ void cumilate(int* histogram, int* &cumilative, int size){
 		cumilative[i] = cumilative[i-1] + histogram[i];
 	}
 }
-
+/**
+ * Sets the array values to zero just to be safe.
+ **/
 void makeHistZero(int* histogram, int size){
 	histogram[0] = 1;
 	for(int i = 1; i < size; i++){
 		histogram[i] = 0;
 	}
 }
+/**
+ * Scales the cumilative histogram to be exactly between 0-179
+ **/
 void scaleCumilative(int* cumilative, int hueSize){
 	for(int i = 0; i < hueSize; i++){
 		cumilative[i] = cumilative[i]*179/cumilative[hueSize-1];

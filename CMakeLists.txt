@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+project(mandel)
+find_package( OpenCV REQUIRED )
+find_package( jsoncpp REQUIRED )
+get_target_property(JSON_INC_PATH jsoncpp_lib INTERFACE_INCLUDE_DIRECTORIES)
+include_directories( ${OpenCV_INCLUDE_DIRS} ${JSON_INC_PATH})
+add_executable( ${PROJECT_NAME} main.cpp )
+target_link_libraries( ${PROJECT_NAME} PUBLIC ${OpenCV_LIBS} jsoncpp_lib)
