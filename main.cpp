@@ -17,6 +17,7 @@ void cumilate(int* histogram, int* &cumilative, int size);
 void makeHistZero(int* histogram, int size);
 void scaleCumilative(int* cumilative, int hueSize);
 void printHist(int *cumilative, int huesize);
+void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax);
 
 int main(int argc, char** argv){
 	char* filename; 
@@ -48,17 +49,35 @@ int main(int argc, char** argv){
 		directory = "Images";
 	}
 
+	Mat M(900, 1000, CV_8UC3, Scalar(1,255,255));
+	int steps = 1000;
+	double remin = gloremin;
+	double remax = gloremax;
+	double immin = gloimmin;
+	double immax = gloimmax;
+	double rerange;
+	double imrange;
+	
+	for(int i = 0; i < steps; i++){
+		mandelbrotImage(M, remin, remax, immin, immax);
+		imshow("hello", M);
+		waitKey(100);
+		rerange = remax - remin;
+		imrange = immax - immin;
+		remin = 0.10 * rerange + remin;
+		remax = remax - 0.10 * rerange;
+		immin = 0.10 * imrange + immin;
+		immax = immax - 0.10 * imrange;
+	}
+}
+
+void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax){
+	M = Scalar(1, 255, 255);
 	int maxIterBlue = 80;
 	complex<double> c;
-	Mat M(2000, 2800, CV_8UC3, Scalar(1,255,255));
 	
-	double remin;
-	double remax;
-	double immin;
-	double immax;
-
-	double rewidth = (gloremax - gloremin)/divisions;
-	double imwidth = (gloimmax - gloimmin)/divisions;
+	double rewidth = (remax - remin);
+	double imwidth = (immax - immin);
 	uchar *p;
 	int cols = M.cols*M.channels();
 	int mandel;
@@ -67,64 +86,41 @@ int main(int argc, char** argv){
 
 	makeHistZero(histogram, hueSize);
 	string filenameImage;
-	ofstream out;
 	string prefix;
 	Value outValue; 
 	int count = 0;
-	for(int reinx = 0; reinx < divisions; reinx++){
-		remin = gloremin + reinx*rewidth;
-		remax = remin + rewidth;
-		for(int iminx = 0; iminx < divisions; iminx++){
-			immin = gloimmin + iminx*imwidth;
-			immax = immin + imwidth;
-			M = Scalar(1, 255, 255);
-			//cout<<"remin "<<remin<<" remax = "<<remax<<" immin= "<<immin<<" immax= "<<immax<<endl;
-			cout<<"Count: "<<count++<<"remin, immin: "<<remin<<", "<<immin<<". remax, immax: "<<remax<<", "<<immax<<endl;
-			makeHistZero(histogram, hueSize);
-			for(int i = 0; i < M.rows; i++){
-				p = M.ptr<uchar>(i);
-				for(int j = 0; j < cols; j += 3){
-					c = complex<double>(remin + (double)j*(remax-remin)/(3*M.cols), 
-									immin + (double)i*(immax-immin)/M.rows);
+	makeHistZero(histogram, hueSize);
+	for(int i = 0; i < M.rows; i++){
+		p = M.ptr<uchar>(i);
+		for(int j = 0; j < cols; j += 3){
+			c = complex<double>(remin + (double)j*(remax-remin)/(3*M.cols), 
+							immin + (double)i*(immax-immin)/M.rows);
 
-					if((mandel = mandelbrot(c, maxIterBlue)) == maxIterBlue){
-						p[j+2] = 0;
-					}
-					else{
-						p[j] = mandel*hueSize/maxIterBlue;
-						histogram[p[j]]++;
-					}
-				}
+			if((mandel = mandelbrot(c, maxIterBlue)) == maxIterBlue){
+				p[j+2] = 0;
 			}
-			int* cumilative;
-			cumilate(histogram, cumilative, hueSize);
-			if(cumilative[hueSize-1] == 0){
-				printHist(cumilative, hueSize);
-				printHist(histogram, hueSize);
+			else{
+				p[j] = mandel*hueSize/maxIterBlue;
+				histogram[p[j]]++;
 			}
-
-			scaleCumilative(cumilative, hueSize);
-			for(int i = 0; i < M.rows; i++){
-				p = M.ptr<uchar>(i);
-				for(int j = 0; j < cols; j += 3){
-					if(p[j+2] != 0)
-						p[j] = cumilative[p[j]];
-				}
-			}
-			cvtColor(M, M, COLOR_HSV2BGR);
-			prefix = directory +  "/mandel" + to_string(reinx) + to_string(iminx);
-			
-			filenameImage = prefix +  ".jpg";
-			imwrite(filenameImage, M);
-			outValue["remin"] = remin;
-			outValue["remax"] = remax;
-			outValue["immin"] = immin;
-			outValue["immax"] = immax;
-			out.open(prefix + ".json");
-			out<<outValue;
-			out.close();
 		}
 	}
+	int* cumilative;
+	cumilate(histogram, cumilative, hueSize);
+	if(cumilative[hueSize-1] == 0){
+		printHist(cumilative, hueSize);
+		printHist(histogram, hueSize);
+	}
+
+	scaleCumilative(cumilative, hueSize);
+	for(int i = 0; i < M.rows; i++){
+		p = M.ptr<uchar>(i);
+		for(int j = 0; j < cols; j += 3){
+			if(p[j+2] != 0)
+				p[j] = cumilative[p[j]];
+		}
+	}
+	cvtColor(M, M, COLOR_HSV2BGR);
 }
 /**
  * Calculates the number of iterations it takes for z to be ejected of the magnitude 2
