@@ -45,11 +45,9 @@ int main(int argc, char** argv){
 		gloremax = 1;
 		gloimmin = -1;
 		gloimmax = 1;
-		divisions = 16;
-		directory = "Images";
 	}
 
-	Mat M(900, 1000, CV_8UC3, Scalar(1,255,255));
+	Mat M(500, 500, CV_8UC3, Scalar(1,255,255));
 	int steps = 1000;
 	double remin = gloremin;
 	double remax = gloremax;
@@ -57,6 +55,7 @@ int main(int argc, char** argv){
 	double immax = gloimmax;
 	double rerange;
 	double imrange;
+	double reductionRate = 0.01;
 	
 	for(int i = 0; i < steps; i++){
 		mandelbrotImage(M, remin, remax, immin, immax);
@@ -64,10 +63,10 @@ int main(int argc, char** argv){
 		waitKey(100);
 		rerange = remax - remin;
 		imrange = immax - immin;
-		remin = 0.10 * rerange + remin;
-		remax = remax - 0.10 * rerange;
-		immin = 0.10 * imrange + immin;
-		immax = immax - 0.10 * imrange;
+		remin = reductionRate * rerange + remin;
+		remax = remax - reductionRate * rerange;
+		immin = reductionRate * imrange + immin;
+		immax = immax - reductionRate * imrange;
 	}
 }
 
