@@ -18,6 +18,7 @@ void makeHistZero(int* histogram, int size);
 void scaleCumilative(int* cumilative, int hueSize);
 void printHist(int *cumilative, int huesize);
 void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax);
+void findZoomCenter(Mat M, double remin, double remax, double immin, double immmax);
 
 int main(int argc, char** argv){
 	char* filename; 
@@ -47,7 +48,7 @@ int main(int argc, char** argv){
 		gloimmax = 1;
 	}
 
-	Mat M(500, 500, CV_8UC3, Scalar(1,255,255));
+	Mat M(1000, 1000, CV_8UC3, Scalar(1,255,255));
 	int steps = 1000;
 	double remin = gloremin;
 	double remax = gloremax;
@@ -61,15 +62,23 @@ int main(int argc, char** argv){
 		mandelbrotImage(M, remin, remax, immin, immax);
 		imshow("hello", M);
 		waitKey(100);
-		rerange = remax - remin;
-		imrange = immax - immin;
-		remin = reductionRate * rerange + remin;
-		remax = remax - reductionRate * rerange;
-		immin = reductionRate * imrange + immin;
-		immax = immax - reductionRate * imrange;
+		if(!(i%10)){
+			findZoomCenter(M, remin, remax, immin, immax);
+		}else{
+			rerange = remax - remin;
+			imrange = immax - immin;
+			remin = reductionRate * rerange + remin;
+			remax = remax - reductionRate * rerange;
+			immin = reductionRate * imrange + immin;
+			immax = immax - reductionRate * imrange;
+		}
 	}
 }
 
+void findZoomCenter(Mat M, double remin, double remax, double immin, double immmax){
+	uchar *p;
+	int cols = M.cols*M.channels();
+}
 void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax){
 	M = Scalar(1, 255, 255);
 	int maxIterBlue = 80;

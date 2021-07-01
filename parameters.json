@@ -1,7 +1,7 @@
 {
 	"remin": -2,
 	"remax": 1,
-	"immin": -1,
+	"immin": -2,
 	"immax": 1,
 	"divisions": 16
 }
