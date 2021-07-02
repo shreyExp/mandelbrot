@@ -4,5 +4,6 @@
 	"remax" : -0.125,
 	"remin" : -0.3125,
 	"directory": "Images4",
-	"divisions": 4
+	"divisions": 4,
+	"output_filename": "output_joker.avi"
 }

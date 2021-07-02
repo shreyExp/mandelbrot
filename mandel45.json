@@ -4,5 +4,6 @@
 	"remax" : -1.0625,
 	"remin" : -1.25,
 	"directory": "Images5",
-	"divisions": 4
+	"divisions": 4,
+	"output_filename": "mandel_henry.avi"
 }

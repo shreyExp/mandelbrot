@@ -3,5 +3,6 @@
 	"remax": 1,
 	"immin": -2,
 	"immax": 1,
-	"divisions": 16
+	"divisions": 16,
+	"output_filename": "output_mirinda.avi"
 }

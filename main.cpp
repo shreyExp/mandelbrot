@@ -6,6 +6,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/videoio.hpp>
 
 using namespace std;
 using namespace cv;
@@ -18,7 +19,8 @@ void makeHistZero(int* histogram, int size);
 void scaleCumilative(int* cumilative, int hueSize);
 void printHist(int *cumilative, int huesize);
 void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax);
-void findZoomCenter(Mat M, double remin, double remax, double immin, double immmax);
+void findRegionOfIntrest(Mat M, double& remin, double& remax, double& immin, double& immmax);
+bool isRegionOfIntrest(Mat subset);
 
 int main(int argc, char** argv){
 	char* filename; 
@@ -28,6 +30,7 @@ int main(int argc, char** argv){
 	double gloimmax;
 	int divisions;
 	string directory;
+	string output_filename;
 	if(argc > 1){
 		ifstream in;
 		Value root;
@@ -41,15 +44,16 @@ int main(int argc, char** argv){
 		gloimmax = root["immax"].asDouble();
 		divisions = root["divisions"].asDouble();
 		directory = root["directory"].asString(); 
+		output_filename = root["output_filename"].asString();
 	}else{
 		gloremin = -2;
 		gloremax = 1;
 		gloimmin = -1;
 		gloimmax = 1;
+		output_filename = "output.avi";
 	}
 
-	Mat M(1000, 1000, CV_8UC3, Scalar(1,255,255));
-	int steps = 1000;
+	Mat M(500, 500, CV_8UC3, Scalar(1,255,255));
 	double remin = gloremin;
 	double remax = gloremax;
 	double immin = gloimmin;
@@ -57,31 +61,122 @@ int main(int argc, char** argv){
 	double rerange;
 	double imrange;
 	double reductionRate = 0.01;
+	double dleft = 0.01;
+	double dright = 0.01;
+	double dup = 0.01;
+	double ddown = 0.01;
 	
+	const double fps = 30;
+	int steps = 200;
+	Size S(500, 500);
+	cv::VideoWriter vid(output_filename, cv::VideoWriter::fourcc('P','I','M','1'), fps, S, 1);
 	for(int i = 0; i < steps; i++){
 		mandelbrotImage(M, remin, remax, immin, immax);
 		imshow("hello", M);
 		waitKey(100);
+		vid<<M;
+		cout<<"Out"<<endl;
+		//cout<<"dleft "<<dleft<<" dright "<<dright<<" dup "<<dup<<" ddown "<<ddown<<endl;
 		if(!(i%10)){
-			findZoomCenter(M, remin, remax, immin, immax);
-		}else{
-			rerange = remax - remin;
-			imrange = immax - immin;
-			remin = reductionRate * rerange + remin;
-			remax = remax - reductionRate * rerange;
-			immin = reductionRate * imrange + immin;
-			immax = immax - reductionRate * imrange;
+			findRegionOfIntrest(M, dleft, dright, dup, ddown);
+		}
+		rerange = remax - remin;
+		imrange = immax - immin;
+		remin = dleft*rerange + remin;
+		remax = remax - dright*rerange;
+		immin = dup * imrange + immin;
+		immax = immax - ddown * imrange;
+	}
+	vid.release();
+}
+
+void findRegionOfIntrest(Mat M, double& dleft, double& dright, double& dup, double& ddown){
+	uchar *p;
+	int noOfBlocks = 100;
+	int lengthOfBlockHz = M.cols/noOfBlocks;
+	int lengthOfBlockVr = M.rows/noOfBlocks;
+	int noOfMoves = 0;
+	bool isReg = 0;
+	int startIndx = noOfBlocks/2;
+	int blkIndxHz = startIndx;
+	int blkIndxVr = startIndx;
+	int noOfMovesSpec = 0;
+	int move = 1;
+	int dir = 0;
+	bool firstTime = 1;
+	bool doit = 1;
+	while(doit){
+		if((noOfMoves+1)%2)
+			noOfMovesSpec = (noOfMoves + 1)/2 + 1;
+		else
+			noOfMovesSpec = (noOfMoves + 1)/2;
+		noOfMoves++;
+		//Now design a function which takes direction and moves
+		//Gotta let the whole damn thing work for the first time
+		//cout<<"noOfMovesSpec: "<<noOfMovesSpec<<endl;
+		while(noOfMovesSpec){
+			if(!firstTime){
+				if(dir == 0)
+					blkIndxHz++;
+				else if(dir == 1)
+					blkIndxVr++;
+				else if(dir == 2)
+					blkIndxHz--;
+				else if(dir == 3)
+					blkIndxVr--;
+			}
+			firstTime = 0;
+			//cout<<noOfMoves<<endl;
+			//cout<<"blkIndxHz: "<<blkIndxHz<<"blkIndxVr "<<blkIndxVr<<endl;
+			Mat subset(M, Rect(blkIndxHz*lengthOfBlockHz, blkIndxVr*lengthOfBlockVr, lengthOfBlockHz, lengthOfBlockVr));
+			isReg = isRegionOfIntrest(subset);
+			if(isReg){
+				//Here goes the code to calculate the percentage decrement needed at borders.
+				dleft = (double)blkIndxHz/(double)noOfBlocks;
+				dright = 1 - dleft;
+				dup = (double)blkIndxVr/(double)noOfBlocks;
+				ddown = 1 - dup;
+				dleft = 0.1*dleft;
+				dright = 0.1*dright;
+				dup = 0.1*dup;
+				ddown = 0.1*ddown;
+				doit = 0;
+				break;
+			}
+			noOfMovesSpec--;
+		}
+
+		dir++;
+		if(dir%4 == 0){
+			dir = 0;
 		}
 	}
 }
-
-void findZoomCenter(Mat M, double remin, double remax, double immin, double immmax){
-	uchar *p;
-	int cols = M.cols*M.channels();
+bool isRegionOfIntrest(Mat subset){
+	int cols = subset.cols*subset.channels();	
+	int noOfSetElems = 0;
+	bool value = 0;
+	uchar* p;
+	for(int i = 0; i < subset.rows; i++){
+		p = subset.ptr<uchar>(i);
+		for(int j = 0; j < cols; j += 3){
+			if(p[j+2] == 255){
+				noOfSetElems++;
+			}
+		}
+	}
+	double proportion = (double)noOfSetElems/(double)(subset.cols*subset.rows);
+	//cout<<"proportion: "<<proportion<<endl;
+	if(proportion > 0.30 && proportion < 0.70)
+		value = 1;
+	else
+		value = 0;
+	return value;
 }
+
 void mandelbrotImage(Mat M, double remin, double remax, double immin, double immax){
 	M = Scalar(1, 255, 255);
-	int maxIterBlue = 80;
+	int maxIterBlue = 255;
 	complex<double> c;
 	
 	double rewidth = (remax - remin);
